@@ -40,6 +40,7 @@ export async function POST(request) {
         const y = parseInt(formData.get("y"));
         const w = parseInt(formData.get("w"));
         const h = parseInt(formData.get("h"));
+        const caption = formData.get("caption") || "";
 
         if (!file || typeof file === "string") {
             return Response.json({error: "No file provided"}, {status: 400})
@@ -60,7 +61,7 @@ export async function POST(request) {
 
         const { data: placement, error: insertErr } = await supabase
             .from("placements")
-            .insert({ url: publicUrl, x, y, w, h })
+            .insert({ url: publicUrl, x, y, w, h, caption })
             .select()
             .single();
 

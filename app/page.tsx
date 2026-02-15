@@ -8,7 +8,7 @@ import FloatingUploadPanel from './ui/floating-upload-panel';
 import MosaicStatus from './ui/mosaic-status';
 import CanvasControls from './ui/canvas-controls';
 
-// an image placement
+// an image
 type Placement = {
   id: string;
   x: number;
@@ -16,13 +16,61 @@ type Placement = {
   w: number;
   h: number;
   url: string;
+  caption?: string;
 };
 
 
-const URLImage = ({ src, ...rest }: {src: string; [key: string]: unknown}) => {
+const hoverSound = typeof window !== 'undefined' ? new Audio('/hover.wav') : null;
+if (hoverSound) hoverSound.volume = 0.15;
+
+const URLImage = ({ src, ...rest }: {src: string; [key: string]: any}) => {
   const [image, status] = useImage(src);
   if (status === 'failed') console.error('Failed to load image:', src);
   return <KonvaImage image={image ?? undefined} {...(rest as Konva.ImageConfig)} />;
+};
+
+const PlacedImage = ({ src, x, y, w, h, caption, onHover }: {
+  src: string; x: number; y: number; w: number; h: number;
+  caption?: string;
+  onHover: (info: {x: number; y: number; h: number; caption: string} | null) => void;
+}) => {
+  const [image] = useImage(src);
+  const imgRef = useRef<Konva.Image>(null);
+  const SHRINK = 0.95;
+
+  return (
+    <KonvaImage
+      ref={imgRef}
+      image={image}
+      x={x} y={y}
+      width={w} height={h}
+      offsetX={0} offsetY={0}
+      onMouseEnter={() => {
+        if (hoverSound) { hoverSound.currentTime = 0; hoverSound.play().catch(() => {}); }
+        if (caption) onHover({ x: x + w, y, h, caption });
+        const node = imgRef.current;
+        if (!node) return;
+        node.to({
+          scaleX: SHRINK, scaleY: SHRINK,
+          offsetX: -(w * (1 - SHRINK)) / 2,
+          offsetY: -(h * (1 - SHRINK)) / 2,
+          duration: 0.08,
+          easing: Konva.Easings.EaseOut,
+        });
+      }}
+      onMouseLeave={() => {
+        onHover(null);
+        const node = imgRef.current;
+        if (!node) return;
+        node.to({
+          scaleX: 1, scaleY: 1,
+          offsetX: 0, offsetY: 0,
+          duration: 0.08,
+          easing: Konva.Easings.EaseInOut,
+        });
+      }}
+    />
+  );
 };
 
 function findSnapPosition(dropX: number, dropY: number, w: number, h: number, placements: Placement[]): {x: number, y: number} | null {
@@ -75,15 +123,19 @@ export default function Home() {
   const [placements, setPlacements] = useState<Placement[]>([]);
 
   useEffect(() => {
-    fetch("/api/placements")
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("placements:", data);
-        if (Array.isArray(data)) setPlacements(data);
-      })
-      .catch(console.error);
-    }, []);
+    const fetchPlacements = () =>
+      fetch("/api/placements")
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) setPlacements(data);
+        })
+        .catch(console.error);
+    fetchPlacements();
+    const interval = setInterval(fetchPlacements, 5000);
+    return () => clearInterval(interval);
+  }, []);
     
+  const [tooltip, setTooltip] = useState<{x: number; y: number; h: number; caption: string} | null>(null);
   const [ghost, setGhost] = useState<{src: string; x: number; y: number; w: number; h: number} | null>(null);
   const stageRef = useRef<Konva.Stage>(null);
   const [scale, setScale] = useState(0.3);
@@ -173,7 +225,7 @@ export default function Home() {
             shadowOffset={{ x: 0, y: 12 }}
           />
           {placements.map((p) => (
-            <URLImage key={p.id} src={p.url} x={p.x} y={p.y} width={p.w} height={p.h} />
+            <PlacedImage key={p.id} src={p.url} x={p.x} y={p.y} w={p.w} h={p.h} caption={p.caption} onHover={setTooltip} />
           ))}
           {ghost && (
             <URLImage
@@ -199,6 +251,26 @@ export default function Home() {
           )}
         </Layer>
       </Stage>
+      {tooltip && (
+        <div
+          style={{
+            position: 'fixed',
+            left: tooltip.x * scale + pos.x + 8,
+            top: (tooltip.y + tooltip.h / 2) * scale + pos.y,
+            background: 'rgba(0,0,0,0.8)',
+            color: 'white',
+            padding: '6px 12px',
+            borderRadius: 6,
+            fontSize: 14,
+            pointerEvents: 'none',
+            maxWidth: 250,
+            zIndex: 100,
+          }}
+        >
+          {tooltip.caption}
+        </div>
+      )}
+    </>
 
       <div className="pointer-events-none absolute inset-0 z-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.22),_transparent_40%),radial-gradient(circle_at_bottom_left,_rgba(14,116,144,0.28),_transparent_45%)]" />
