@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useRef} from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Stage, Layer, Image as KonvaImage, Rect } from "react-konva";
 import Konva from 'konva';
 import { KonvaEventObject } from "konva/lib/Node";
@@ -17,10 +17,51 @@ type Placement = {
 };
 
 
+const hoverSound = typeof window !== 'undefined' ? new Audio('/hover.wav') : null;
+if (hoverSound) hoverSound.volume = 0.15;
+
 const URLImage = ({ src, ...rest }: {src: string; [key: string]: any}) => {
   const [image, status] = useImage(src);
   if (status === 'failed') console.error('Failed to load image:', src);
   return <KonvaImage image={image} {...rest} />;
+};
+
+const PlacedImage = ({ src, x, y, w, h }: {src: string; x: number; y: number; w: number; h: number}) => {
+  const [image] = useImage(src);
+  const imgRef = useRef<Konva.Image>(null);
+  const SHRINK = 0.95;
+
+  return (
+    <KonvaImage
+      ref={imgRef}
+      image={image}
+      x={x} y={y}
+      width={w} height={h}
+      offsetX={0} offsetY={0}
+      onMouseEnter={() => {
+        if (hoverSound) { hoverSound.currentTime = 0; hoverSound.play().catch(() => {}); }
+        const node = imgRef.current;
+        if (!node) return;
+        node.to({
+          scaleX: SHRINK, scaleY: SHRINK,
+          offsetX: -(w * (1 - SHRINK)) / 2,
+          offsetY: -(h * (1 - SHRINK)) / 2,
+          duration: 0.08,
+          easing: Konva.Easings.EaseOut,
+        });
+      }}
+      onMouseLeave={() => {
+        const node = imgRef.current;
+        if (!node) return;
+        node.to({
+          scaleX: 1, scaleY: 1,
+          offsetX: 0, offsetY: 0,
+          duration: 0.08,
+          easing: Konva.Easings.EaseInOut,
+        });
+      }}
+    />
+  );
 };
 
 function findSnapPosition(dropX: number, dropY: number, w: number, h: number, placements: Placement[]): {x: number, y: number} | null {
@@ -158,7 +199,7 @@ export default function Home() {
         <Layer>
           <Rect x={-3000} y={-3000} width={6000} height={6000} fill="white" />
           {placements.map((p) => (
-            <URLImage key={p.id} src={p.url} x={p.x} y={p.y} width={p.w} height={p.h} />
+            <PlacedImage key={p.id} src={p.url} x={p.x} y={p.y} w={p.w} h={p.h} />
           ))}
           {ghost && (
             <URLImage
