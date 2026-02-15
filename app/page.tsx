@@ -142,7 +142,7 @@ export default function Home() {
 
   return (
     <>
-      <UploadPage/>
+      <UploadPage imageProps={ghosPos}/>
       <Stage
         ref={stageRef}
         width={size.w} height={size.h}

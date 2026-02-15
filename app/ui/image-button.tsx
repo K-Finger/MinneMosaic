@@ -24,8 +24,8 @@ export default function UploadPage({imageProps}) {
     });
 
     const result = await response.json();
-    if (result['status'] != 201) {
-        alert("Upload failed");
+    if (!response.ok) {
+        alert(result.error || "Upload failed");
     }
     else {
         alert("Uploaded successfully!");
