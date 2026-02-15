@@ -232,7 +232,10 @@ export default function Home() {
       >
         <Layer>
           <DotGridBackground x={viewLeft} y={viewTop} w={viewW} h={viewH} />
-          {placements.map((p) => (
+          {placements.filter((p) =>
+            p.x + p.w > viewLeft && p.x < viewLeft + viewW &&
+            p.y + p.h > viewTop && p.y < viewTop + viewH
+          ).map((p) => (
             <PlacedImage key={p.id} src={p.url} x={p.x} y={p.y} w={p.w} h={p.h} caption={p.caption} onHover={setTooltip}
               onClick={() => adminMode && setSelectedId(selectedId === p.id ? null : p.id)}
             />
