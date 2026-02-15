@@ -25,16 +25,17 @@ const ColoredRect = () => {
 export default function Home() {
   const width = window.innerWidth;
   const height = window.innerHeight;
+  const [ghosPos, setghosPos] = useState({x:0, y:0});
 
   return (
       <>
     <Stage width={width} height={height}>
       <Layer>
-        <Rect x={0} y={0} width={width} height={height} fill="white" />
+        <Rect x={ghosPos.x} y={ghosPos.y} width={width} height={height} fill="white" onDragEnd={(e) => setghosPos({x: e.target.x(), y: e.target.y()})}/>
         <ColoredRect/>
       </Layer>
     </Stage>
-        <UploadPage/>
+        <UploadPage imageProps={ghosPos}/>
       </>
   );
 }
