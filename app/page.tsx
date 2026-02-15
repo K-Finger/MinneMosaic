@@ -118,7 +118,11 @@ export default function Home() {
   const [scale, setScale] = useState(0.3);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [size, setSize] = useState({ w: 800, h: 600 });
-  const canvasBounds = { x: -4000, y: -4000, w: 8000, h: 8000 };
+  const BUFFER = 2000;
+  const viewLeft = -pos.x / scale - BUFFER;
+  const viewTop = -pos.y / scale - BUFFER;
+  const viewW = size.w / scale + BUFFER * 2;
+  const viewH = size.h / scale + BUFFER * 2;
 
   useEffect(() => {
     const resize = () => setSize({ w: innerWidth, h: innerHeight });
@@ -156,17 +160,28 @@ export default function Home() {
   };
 
   const resetView = () => {
+    if (placements.length > 0) { fitCanvas(); return; }
     setScale(1);
-    setPos({ x: 0, y: 0 });
+    setPos({ x: size.w / 2, y: size.h / 2 });
   };
 
   const fitCanvas = () => {
-    const fittedScale = Math.min(size.w / canvasBounds.w, size.h / canvasBounds.h);
-    const safeScale = clampScale(fittedScale);
-    setScale(safeScale);
+    if (placements.length === 0) { resetView(); return; }
+    const PAD = 200;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const p of placements) {
+      minX = Math.min(minX, p.x);
+      minY = Math.min(minY, p.y);
+      maxX = Math.max(maxX, p.x + p.w);
+      maxY = Math.max(maxY, p.y + p.h);
+    }
+    const bw = maxX - minX + PAD * 2;
+    const bh = maxY - minY + PAD * 2;
+    const fittedScale = clampScale(Math.min(size.w / bw, size.h / bh));
+    setScale(fittedScale);
     setPos({
-      x: (size.w - canvasBounds.w * safeScale) / 2 - canvasBounds.x * safeScale,
-      y: (size.h - canvasBounds.h * safeScale) / 2 - canvasBounds.y * safeScale,
+      x: (size.w - bw * fittedScale) / 2 - (minX - PAD) * fittedScale,
+      y: (size.h - bh * fittedScale) / 2 - (minY - PAD) * fittedScale,
     });
   };
 
@@ -212,7 +227,7 @@ export default function Home() {
         className="absolute inset-0"
       >
         <Layer>
-          <DotGridBackground x={canvasBounds.x} y={canvasBounds.y} w={canvasBounds.w} h={canvasBounds.h} />
+          <DotGridBackground x={viewLeft} y={viewTop} w={viewW} h={viewH} />
           {placements.map((p) => (
             <PlacedImage key={p.id} src={p.url} x={p.x} y={p.y} w={p.w} h={p.h} caption={p.caption} onHover={setTooltip}
               onClick={() => adminMode && setSelectedId(selectedId === p.id ? null : p.id)}
@@ -248,15 +263,21 @@ export default function Home() {
                   e.target.x(snap.x);
                   e.target.y(snap.y);
                 }}
-                onTransformEnd={() => { // SNAPPING
+                onTransformEnd={() => {
                   const node = ghostRef.current;
                   if (!node) return;
                   const sx = node.scaleX();
                   const sy = node.scaleY();
                   node.scaleX(1);
                   node.scaleY(1);
-                  const rawW = Math.round(node.width() * sx);
-                  const rawH = Math.round(node.height() * sy);
+                  let rawW = Math.round(node.width() * sx);
+                  let rawH = Math.round(node.height() * sy);
+                  const MAX = 900;
+                  if (rawW > MAX || rawH > MAX) {
+                    const ratio = Math.min(MAX / rawW, MAX / rawH);
+                    rawW = Math.round(rawW * ratio);
+                    rawH = Math.round(rawH * ratio);
+                  }
                   const snapped = snapSize(node.x(), node.y(), rawW, rawH, placements);
                   setGhost({
                     ...ghost,
