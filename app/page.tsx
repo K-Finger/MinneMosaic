@@ -145,7 +145,18 @@ export default function Home() {
               width={ghost.w} height={ghost.h}
               draggable
               onDragEnd={(e: any) => {
-                setGhost({ ...ghost, x: e.target.x(), y: e.target.y() });
+                const dropX = e.target.x();
+                const dropY = e.target.y();
+                const snap = findSnapPosition(dropX, dropY, ghost.w, ghost.h, placements);
+                if (snap) {
+                  setGhost({ ...ghost, x: snap.x, y: snap.y });
+                  e.target.x(snap.x);
+                  e.target.y(snap.y);
+                } else {
+                  // no valid position, revert to previous spot
+                  e.target.x(ghost.x);
+                  e.target.y(ghost.y);
+                }
               }}
             />
           )}
