@@ -54,16 +54,24 @@ export function snapPosition(x: number, y: number, w: number, h: number, rects: 
 export function snapSize(x: number, y: number, w: number, h: number, rects: Rect[]): { w: number; h: number } {
   if (rects.length === 0) return { w, h };
   const { xs, ys } = getEdges(rects);
-
-  let newW = w, newH = h;
+  const ratio = w / h;
 
   const snapR = snapToEdge(x + w, xs);
-  if (snapR !== null && snapR > x + 50) newW = snapR - x;
-
   const snapB = snapToEdge(y + h, ys);
-  if (snapB !== null && snapB > y + 50) newH = snapB - y;
 
-  return { w: newW, h: newH };
+  const dR = snapR !== null && snapR > x + 50 ? Math.abs(x + w - snapR) : Infinity;
+  const dB = snapB !== null && snapB > x + 50 ? Math.abs(y + h - snapB!) : Infinity;
+
+  if (dR <= dB && snapR !== null) {
+    const newW = snapR - x;
+    return { w: newW, h: Math.round(newW / ratio) };
+  }
+  if (snapB !== null) {
+    const newH = snapB - y;
+    return { w: Math.round(newH * ratio), h: newH };
+  }
+
+  return { w, h };
 }
 
 export function isAdjacent(img: Rect, rects: Rect[]) {

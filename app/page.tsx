@@ -24,9 +24,6 @@ type Placement = {
 const hoverSound = typeof window !== 'undefined' ? new Audio('/hover.wav') : null;
 if (hoverSound) hoverSound.volume = 0.15;
 
-const pickupSound = typeof window !== 'undefined' ? new Audio('/hover2.wav') : null;
-if (pickupSound) pickupSound.volume = 0.15;
-
 const snapSound = typeof window !== 'undefined' ? new Audio('/bubble.wav') : null;
 if (snapSound) snapSound.volume = 0.15;
 
@@ -77,6 +74,21 @@ const PlacedImage = ({ src, x, y, w, h, caption, onHover }: {
           easing: Konva.Easings.EaseInOut,
         });
       }}
+    />
+  );
+};
+
+const DotGridBackground = ({ x, y, w, h }: { x: number; y: number; w: number; h: number }) => {
+  const [pattern] = useImage('/dot-grid.webp');
+  return (
+    <Rect
+      x={x} y={y} width={w} height={h}
+      fillPatternImage={pattern}
+      fillPatternRepeat="repeat"
+      // cornerRadius={24}
+      // shadowBlur={40}
+      // shadowOpacity={0.08}
+      // shadowOffset={{ x: 0, y: 12 }}
     />
   );
 };
@@ -184,17 +196,7 @@ export default function Home() {
         className="absolute inset-0"
       >
         <Layer>
-          <Rect
-            x={canvasBounds.x}
-            y={canvasBounds.y}
-            width={canvasBounds.w}
-            height={canvasBounds.h}
-            fill="#f8fafc"
-            cornerRadius={24}
-            shadowBlur={40}
-            shadowOpacity={0.08}
-            shadowOffset={{ x: 0, y: 12 }}
-          />
+          <DotGridBackground x={canvasBounds.x} y={canvasBounds.y} w={canvasBounds.w} h={canvasBounds.h} />
           {placements.map((p) => (
             <PlacedImage key={p.id} src={p.url} x={p.x} y={p.y} w={p.w} h={p.h} caption={p.caption} onHover={setTooltip} />
           ))}
@@ -206,10 +208,7 @@ export default function Home() {
                 x={ghost.x} y={ghost.y}
                 width={ghost.w} height={ghost.h}
                 draggable
-                onDragStart={() => {
-                  if (pickupSound) { pickupSound.currentTime = 0; pickupSound.play().catch(() => {}); }
-                }}
-                onDragEnd={(e: KonvaEventObject<DragEvent>) => {
+onDragEnd={(e: KonvaEventObject<DragEvent>) => {
                   const dropX = e.target.x();
                   const dropY = e.target.y();
                   const snap = snapPosition(dropX, dropY, ghost.w, ghost.h, placements);
