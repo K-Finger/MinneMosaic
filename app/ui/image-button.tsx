@@ -1,17 +1,20 @@
 "use client";
 import { useState } from "react";
 
-export default function UploadPage() {
+export default function UploadPage({imageProps}) {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!file) return alert("Please select a file first!");
+    if (!file) return alert("No file selected");
 
     setUploading(true);
     const formData = new FormData();
     formData.append("file", file);
+    alert(imageProps.x);
+    // formData.append("x", imageProps.x)
+    // formData.append("y", imageProps.y)
 
     const response = await fetch("/api/placements", {
         method: "POST",
@@ -19,8 +22,13 @@ export default function UploadPage() {
     });
 
     const result = await response.json();
-    console.log("Upload result:", result);
-    alert("Uploaded successfully!");
+    if (result['status'] != 201) {
+        alert("Upload failed");
+    }
+    else {
+        alert("Uploaded successfully!");
+    }
+    setUploading(false);
   };
 
   return (
