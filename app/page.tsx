@@ -3,9 +3,10 @@ import { useState, useEffect, useRef} from 'react';
 import { Stage, Layer, Image as KonvaImage, Rect, Text } from "react-konva";
 import Konva from 'konva';
 import { KonvaEventObject } from "konva/lib/Node";
+import useImage from 'use-image';
 import UploadPage from './ui/image-button';
 
-const CANVAS_SIZE = 5000;
+const CANVAS_SIZE = 6000;
 
 const ColoredRect = () => {
   const [color, setColor] = useState('green');
@@ -20,8 +21,24 @@ const ColoredRect = () => {
       onDragEnd={() => {
         setColor(Konva.Util.getRandomColor());
       }}
-      draggable/>
+      draggable
+      />
   )
+};
+
+const CanvasBackground = () => {
+  return ( 
+  <Rect 
+    x={-CANVAS_SIZE/2} y={-CANVAS_SIZE/2} 
+    width={CANVAS_SIZE} height={CANVAS_SIZE} 
+    fill="white" 
+  />
+  )
+}
+
+const URLImage = ({ src, ...rest }: {src: string}) => {
+  const [image] = useImage(src, 'anonymous');
+  return <KonvaImage image={image} {...rest} />;
 };
 
 export default function Home() {
@@ -88,7 +105,7 @@ export default function Home() {
         }}
       >
         <Layer>
-          <Rect x={0} y={0} width={CANVAS_SIZE} height={CANVAS_SIZE} fill="white" />
+          <CanvasBackground/>
           <ColoredRect/>
         </Layer>
       </Stage>
