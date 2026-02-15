@@ -150,7 +150,7 @@ export default function UploadPage({
               className="h-4 w-auto"
               unoptimized
             />
-            MinneMosaic
+            MemoryMosaic
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
