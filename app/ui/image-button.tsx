@@ -1,9 +1,8 @@
 "use client";
 import { useState } from "react";
 
-export default function UploadPage({imageProps}) {
+export default function UploadPage({imageProps, onFileSelect, onUploaded}) {
   const [file, setFile] = useState<File | null>(null);
-  const [imgSize, setImgSize] = useState({w: 0, h: 0});
   const [uploading, setUploading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -13,10 +12,10 @@ export default function UploadPage({imageProps}) {
     setUploading(true);
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("x", String(imageProps.x));
-    formData.append("y", String(imageProps.y));
-    formData.append("w", String(imgSize.w));
-    formData.append("h", String(imgSize.h));
+    formData.append("x", String(Math.round(imageProps.x)));
+    formData.append("y", String(Math.round(imageProps.y)));
+    formData.append("w", String(Math.round(imageProps.w)));
+    formData.append("h", String(Math.round(imageProps.h)));
 
     const response = await fetch("/api/placements", {
         method: "POST",
@@ -28,7 +27,9 @@ export default function UploadPage({imageProps}) {
         alert(result.error || "Upload failed");
     }
     else {
-        alert("Uploaded successfully!");
+        setFile(null);
+        onFileSelect(null, 0, 0);
+        onUploaded(result);
     }
     setUploading(false);
   };
@@ -37,13 +38,16 @@ export default function UploadPage({imageProps}) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <input
         type="file"
+        accept="image/*"
         onChange={(e) => {
           const f = e.target.files?.[0] ?? null;
           setFile(f);
           if (f) {
             const img = new window.Image();
             img.src = URL.createObjectURL(f);
-            img.onload = () => setImgSize({w: img.naturalWidth, h: img.naturalHeight});
+            img.onload = () => onFileSelect(img.src, img.naturalWidth, img.naturalHeight);
+          } else {
+            onFileSelect(null, 0, 0);
           }
         }}
       />
@@ -53,7 +57,7 @@ export default function UploadPage({imageProps}) {
         disabled={!file || uploading}
         className="px-4 py-2 bg-blue-500 text-white disabled:bg-gray-300"
       >
-        {uploading ? "Submitted" : "Submit"}
+        {uploading ? "Submitting..." : "Submit"}
       </button>
     </form>
   );
