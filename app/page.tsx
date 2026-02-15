@@ -66,7 +66,7 @@ export default function Home() {
       .then((res) => res.json())
       .then((data) => {
         console.log("placements:", data);
-        setPlacements(data);
+        if (Array.isArray(data)) setPlacements(data);
       })
       .catch(console.error);
     }, []);
