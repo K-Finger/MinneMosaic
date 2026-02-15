@@ -33,7 +33,9 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
 ## Technical Implementation
-MinneMosaic is built a Next.js App a Typescript React frontend. Images are stored in Supabase Storage with placement metadata (position, size, caption). The canvas hasmagnetic snapping that lets users precisely align tiles to the existing mosaic without gaps or overlaps. 
+MinneMosaic is built a Next.js App a Typescript React frontend. Images are stored in Supabase Storage with placement metadata (position, size, caption). The canvas uses magnetic snapping that lets users precisely align images to the existing mosaic without gaps or overlaps. 
+
+The project is *~1,078 lines of code* excluding shadcn components.
 
 ## Credits
 Built with [Next.js](https://nextjs.org/), [react-konva](https://konvajs.org/docs/react/), [Supabase](https://supabase.com/), [shadcn/ui](https://ui.shadcn.com/)
