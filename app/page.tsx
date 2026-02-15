@@ -1,25 +1,41 @@
 "use client"
-import { useState, useEffect, useRef } from 'react';
-import { Stage, Layer, Rect } from "react-konva";
+import { useState, useEffect, useRef} from 'react';
+import { Stage, Layer, Image as KonvaImage, Rect, Text } from "react-konva";
 import Konva from 'konva';
 import { KonvaEventObject } from "konva/lib/Node";
+import UploadPage from './ui/image-button';
 
 const CANVAS_SIZE = 5000;
 
 const ColoredRect = () => {
   const [color, setColor] = useState('green');
-  return ( 
-    <Rect 
-      x={20} y={20} 
-      width={50} height={50}
-      fill={color} shadowBlur={5} 
-      draggable
-      onDragEnd={() => setColor(Konva.Util.getRandomColor())}
-    />
+  return (
+    <Rect
+      x={20}
+      y={20}
+      width={50}
+      height={50}
+      fill={color}
+      shadowBlur={5}
+      onDragEnd={() => {
+        setColor(Konva.Util.getRandomColor());
+      }}
+      draggable/>
   )
 };
 
 export default function Home() {
+  const [placements, setPlacements] = useState([]);
+
+  useEffect(() => {
+    fetch("/api/placements")
+      .then((res) => res.json())
+      .then((data) => {
+        setPlacements(data);
+      })
+      .catch(console.error);
+  }, []);
+
   const stageRef = useRef<Konva.Stage>(null);
   const [scale, setScale] = useState(1);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -56,23 +72,26 @@ export default function Home() {
   };
 
   return (
-    <Stage
-      ref={stageRef}
-      width={size.w} height={size.h}
-      scaleX={scale} scaleY={scale}
-      x={pos.x} y={pos.y}
-      draggable
-      onWheel={onWheel}
-      onDragEnd={e => {
-        if (e.target === stageRef.current) {
-          setPos({ x: e.target.x(), y: e.target.y() });
-        }
-      }}
-    >
-      <Layer>
-        <Rect x={0} y={0} width={CANVAS_SIZE} height={CANVAS_SIZE} fill="white" />
-        <ColoredRect/>
-      </Layer>
-    </Stage>
+    <>
+      <UploadPage/>
+      <Stage
+        ref={stageRef}
+        width={size.w} height={size.h}
+        scaleX={scale} scaleY={scale}
+        x={pos.x} y={pos.y}
+        draggable
+        onWheel={onWheel}
+        onDragEnd={e => {
+          if (e.target === stageRef.current) {
+            setPos({ x: e.target.x(), y: e.target.y() });
+          }
+        }}
+      >
+        <Layer>
+          <Rect x={0} y={0} width={CANVAS_SIZE} height={CANVAS_SIZE} fill="white" />
+          <ColoredRect/>
+        </Layer>
+      </Stage>
+    </>
   );
 }
