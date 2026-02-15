@@ -1,22 +1,20 @@
-# minnemosiac
+# MemoryMosaic
 Our MinneHack 2025 project.
 
 Members: Kieran Finger, Qise Salem, Justin Nguyen, Victor Hofstetter
 
-## MinneMosaic
-
 **MinneHack 2026 Theme: "Mending over Ending"**
 
-MinneMosaic is a collaborative, never-ending mosaic where anyone can upload an image and snap it into place on a shared infinite canvas. Each tile is mended together, making a community-built collage.
+MemoryMosaic is a collaborative, never-ending mosaic where anyone can upload an image and snap it into place on a shared infinite canvas. Each tile is mended together, making a community-built collage.
 
 Hover over any tile to read its caption and learn the story behind it.
 
-![MinneMosaic view](public/view.png)
+![MemoryMosaic view](public/view.png)
 
-![MinneMosaic preview](public/readmepreview.png)
+![MemoryMosaic preview](public/readmepreview.png)
 
 ## How to Run
-Running MinneMosiac requires Node.js. Clone the repo, install dependencies, and start the dev server:
+Running MemoryMosiac requires Node.js. Clone the repo, install dependencies, and start the dev server:
 
 ```bash
 npm install
@@ -33,7 +31,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
 ## Technical Implementation
-MinneMosaic is built a Next.js App a Typescript React frontend. Images are stored in Supabase Storage with placement metadata (position, size, caption). The canvas uses magnetic snapping that lets users precisely align images to the existing mosaic without gaps or overlaps. 
+MemoryMosaic is built a Next.js App a Typescript React frontend. Images are stored in Supabase Storage with placement metadata (position, size, caption). The canvas uses magnetic snapping that lets users precisely align images to the existing mosaic without gaps or overlaps. 
 
 The project is *~1,078 lines of code* excluding shadcn components.
 
