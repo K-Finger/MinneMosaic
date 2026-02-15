@@ -11,6 +11,27 @@ export async function GET() {
   return Response.json(data);
 }
 
+// MASS DELETE FUNCTION FOR TESTING
+export async function DELETE() {
+    try {
+        const { data: rows, error: selectErr } = await supabase.from("placements").select("url");
+        if (selectErr) throw selectErr;
+
+        const fileNames = rows.map((r) => r.url.split("/").pop()).filter(Boolean);
+        if (fileNames.length > 0) {
+            const { error: storageErr } = await supabase.storage.from("images").remove(fileNames);
+            if (storageErr) throw storageErr;
+        }
+
+        const { error: deleteErr } = await supabase.from("placements").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+        if (deleteErr) throw deleteErr;
+
+        return Response.json({ deleted: fileNames.length });
+    } catch (err) {
+        return Response.json({ error: err.message }, { status: 500 });
+    }
+}
+
 export async function POST(request) {
     try {
         const formData = await request.formData();
