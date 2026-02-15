@@ -9,7 +9,11 @@ import FloatingUploadPanel from './ui/floating-upload-panel';
 import MosaicStatus from './ui/mosaic-status';
 import CanvasControls from './ui/canvas-controls';
 
-// an image
+const IMAGE_SHRINK_PERCENT = 0.95;
+const KONVA_BUFFER = 2000; // how many px of Konva to render past the viewport
+const MAX_IMAGE_SIZE = 900;
+const FIT_PAD = 200;
+
 type Placement = {
   id: string;
   x: number;
@@ -42,7 +46,6 @@ const PlacedImage = ({ src, x, y, w, h, caption, onHover, onClick }: {
 }) => {
   const [image] = useImage(src);
   const imgRef = useRef<Konva.Image>(null);
-  const SHRINK = 0.95;
 
   return (
     <KonvaImage
@@ -57,9 +60,9 @@ const PlacedImage = ({ src, x, y, w, h, caption, onHover, onClick }: {
         const node = imgRef.current;
         if (!node) return;
         node.to({
-          scaleX: SHRINK, scaleY: SHRINK,
-          offsetX: -(w * (1 - SHRINK)) / 2,
-          offsetY: -(h * (1 - SHRINK)) / 2,
+          scaleX: IMAGE_SHRINK_PERCENT, scaleY: IMAGE_SHRINK_PERCENT,
+          offsetX: -(w * (1 - IMAGE_SHRINK_PERCENT)) / 2,
+          offsetY: -(h * (1 - IMAGE_SHRINK_PERCENT)) / 2,
           duration: 0.08,
           easing: Konva.Easings.EaseOut,
         });
@@ -118,12 +121,12 @@ export default function Home() {
   const [scale, setScale] = useState(0.3);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [size, setSize] = useState({ w: 800, h: 600 });
-  const BUFFER = 2000;
-  const viewLeft = -pos.x / scale - BUFFER;
-  const viewTop = -pos.y / scale - BUFFER;
-  const viewW = size.w / scale + BUFFER * 2;
-  const viewH = size.h / scale + BUFFER * 2;
+  const viewLeft = -pos.x / scale - KONVA_BUFFER;
+  const viewTop = -pos.y / scale - KONVA_BUFFER;
+  const viewW = size.w / scale + KONVA_BUFFER * 2;
+  const viewH = size.h / scale + KONVA_BUFFER * 2;
 
+  // canvas resize not image resize
   useEffect(() => {
     const resize = () => setSize({ w: innerWidth, h: innerHeight });
     resize();
@@ -167,7 +170,6 @@ export default function Home() {
 
   const fitCanvas = () => {
     if (placements.length === 0) { resetView(); return; }
-    const PAD = 200;
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const p of placements) {
       minX = Math.min(minX, p.x);
@@ -175,13 +177,13 @@ export default function Home() {
       maxX = Math.max(maxX, p.x + p.w);
       maxY = Math.max(maxY, p.y + p.h);
     }
-    const bw = maxX - minX + PAD * 2;
-    const bh = maxY - minY + PAD * 2;
+    const bw = maxX - minX + FIT_PAD * 2;
+    const bh = maxY - minY + FIT_PAD * 2;
     const fittedScale = clampScale(Math.min(size.w / bw, size.h / bh));
     setScale(fittedScale);
     setPos({
-      x: (size.w - bw * fittedScale) / 2 - (minX - PAD) * fittedScale,
-      y: (size.h - bh * fittedScale) / 2 - (minY - PAD) * fittedScale,
+      x: (size.w - bw * fittedScale) / 2 - (minX - FIT_PAD) * fittedScale,
+      y: (size.h - bh * fittedScale) / 2 - (minY - FIT_PAD) * fittedScale,
     });
   };
 
@@ -199,6 +201,8 @@ export default function Home() {
       console.error('Delete failed:', err);
     }
   };
+
+  const selected = adminMode && selectedId ? placements.find((p) => p.id === selectedId) : null;
 
   const onWheel = (e: KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
@@ -233,17 +237,13 @@ export default function Home() {
               onClick={() => adminMode && setSelectedId(selectedId === p.id ? null : p.id)}
             />
           ))}
-          {adminMode && selectedId && (() => {
-            const sel = placements.find((p) => p.id === selectedId);
-            if (!sel) return null;
-            return (
-              <Rect
-                x={sel.x} y={sel.y} width={sel.w} height={sel.h}
-                stroke="#ef4444" strokeWidth={4 / scale} dash={[10 / scale, 6 / scale]}
-                listening={false}
-              />
-            );
-          })()}
+          {selected && (
+            <Rect
+              x={selected.x} y={selected.y} width={selected.w} height={selected.h}
+              stroke="#ef4444" strokeWidth={4 / scale} dash={[10 / scale, 6 / scale]}
+              listening={false}
+            />
+          )}
           {ghost && (
             <>
               <URLImage
@@ -272,9 +272,8 @@ export default function Home() {
                   node.scaleY(1);
                   let rawW = Math.round(node.width() * sx);
                   let rawH = Math.round(node.height() * sy);
-                  const MAX = 900;
-                  if (rawW > MAX || rawH > MAX) {
-                    const ratio = Math.min(MAX / rawW, MAX / rawH);
+                  if (rawW > MAX_IMAGE_SIZE || rawH > MAX_IMAGE_SIZE) {
+                    const ratio = Math.min(MAX_IMAGE_SIZE / rawW, MAX_IMAGE_SIZE / rawH);
                     rawW = Math.round(rawW * ratio);
                     rawH = Math.round(rawH * ratio);
                   }
@@ -348,9 +347,8 @@ export default function Home() {
                 return;
               }
 
-              const MAX = 900;
-              if (w > MAX || h > MAX) {
-                const ratio = Math.min(MAX / w, MAX / h);
+              if (w > MAX_IMAGE_SIZE || h > MAX_IMAGE_SIZE) {
+                const ratio = Math.min(MAX_IMAGE_SIZE / w, MAX_IMAGE_SIZE / h);
                 w = Math.round(w * ratio);
                 h = Math.round(h * ratio);
               }
@@ -374,21 +372,20 @@ export default function Home() {
           onResetView={resetView}
         />
 
-        {adminMode && selectedId && (() => {
-          const sel = placements.find((p) => p.id === selectedId);
-          if (!sel) return null;
-          const btnX = (sel.x + sel.w) * scale + pos.x + 8;
-          const btnY = sel.y * scale + pos.y;
-          return (
-            <button
-              onClick={() => handleDelete(selectedId)}
-              style={{ position: 'fixed', left: btnX, top: btnY, zIndex: 200 }}
-              className="pointer-events-auto rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white shadow-lg hover:bg-red-500"
-            >
-              Delete
-            </button>
-          );
-        })()}
+        {selected && selectedId && (
+          <button
+            onClick={() => handleDelete(selectedId)}
+            style={{
+              position: 'fixed',
+              left: (selected.x + selected.w) * scale + pos.x + 8,
+              top: selected.y * scale + pos.y,
+              zIndex: 200,
+            }}
+            className="pointer-events-auto rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white shadow-lg hover:bg-red-500"
+          >
+            Delete
+          </button>
+        )}
       </div>
     </main>
   );
