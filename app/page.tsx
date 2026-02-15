@@ -6,11 +6,20 @@ import Konva from 'konva';
 
 const ColoredRect = () => {
   const [color, setColor] = useState('green');
-  const handleClick = () => {
-    setColor(Konva.Util.getRandomColor());
-  }
-  return <Rect x={20} y={20} width={50} height={50} fill={color} shadowBlur={5} onClick={handleClick} />
-}
+  return ( 
+    <Rect 
+      x={20} 
+      y={20} 
+      width={50} 
+      height={50} 
+      fill={color} 
+      shadowBlur={5} 
+      onDragEnd={() => {
+        setColor(Konva.Util.getRandomColor());
+      }} 
+      draggable/>
+  )
+};
 
 export default function Home() {
   const width = window.innerWidth;
@@ -19,7 +28,7 @@ export default function Home() {
   return (
     <Stage width={width} height={height}>
       <Layer>
-        <Text text="Try click on rect"/>
+        <Rect x={0} y={0} width={width} height={height} fill="white" />
         <ColoredRect/>
       </Layer>
     </Stage>
