@@ -51,21 +51,6 @@ const URLImage = ({ src, ...rest }: {src: string}) => {
   return <KonvaImage image={image} {...rest} />;
 };
 
-const CanvasBackground = () => {
-  return ( 
-  <Rect 
-    x={-CANVAS_SIZE/2} y={-CANVAS_SIZE/2} 
-    width={CANVAS_SIZE} height={CANVAS_SIZE} 
-    fill="white" 
-  />
-  )
-}
-
-const URLImage = ({ src, ...rest }: {src: string}) => {
-  const [image] = useImage(src, 'anonymous');
-  return <KonvaImage image={image} {...rest} />;
-};
-
 function findSnapPosition(dropX: number, dropY: number, w: number, h: number, placements: Placement[]): {x: number, y: number} | null {
   if (placements.length === 0) return { x: dropX, y: dropY };
 
