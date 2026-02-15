@@ -28,7 +28,7 @@ export async function POST(request) {
         }
 
         const buffer = Buffer.from(await file.arrayBuffer());
-        const fileName = `tiles/${Date.now()}-${file.name}`;
+        const fileName = `${Date.now()}-${file.name}`;
 
         const { error: uploadErr } = await supabase.storage.from("images").upload(fileName, buffer, {
             contentType: file.type,
