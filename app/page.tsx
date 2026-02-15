@@ -5,6 +5,7 @@ import Konva from 'konva';
 import { KonvaEventObject } from "konva/lib/Node";
 import useImage from 'use-image';
 import { snapPosition, snapSize, isAdjacent } from '@/lib/snap';
+import { supabase } from '@/lib/supabase/client';
 import FloatingUploadPanel from './ui/floating-upload-panel';
 import MosaicStatus from './ui/mosaic-status';
 import CanvasControls from './ui/canvas-controls';
@@ -98,16 +99,23 @@ export default function Home() {
   const [placements, setPlacements] = useState<Placement[]>([]);
 
   useEffect(() => {
-    const fetchPlacements = () =>
-      fetch("/api/placements")
-        .then((res) => res.json())
-        .then((data) => {
-          if (Array.isArray(data)) setPlacements(data);
-        })
-        .catch(console.error);
-    fetchPlacements();
-    const interval = setInterval(fetchPlacements, 5000); // auto refresh ever 5000 ms. move to websockets
-    return () => clearInterval(interval);
+    fetch("/api/placements")
+      .then((res) => res.json())
+      .then((data) => { if (Array.isArray(data)) setPlacements(data); })
+      .catch(console.error);
+
+    const channel = supabase
+      .channel('placements')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'placements' }, (payload) => {
+        const tile = payload.new as Placement;
+        setPlacements((prev) => prev.some((p) => p.id === tile.id) ? prev : [...prev, tile]);
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'placements' }, (payload) => {
+        setPlacements((prev) => prev.filter((p) => p.id !== (payload.old as Placement).id));
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
     
   const [tooltip, setTooltip] = useState<{x: number; y: number; h: number; caption: string} | null>(null);
@@ -359,8 +367,7 @@ export default function Home() {
               const centerY = (size.h / 2 - pos.y) / scale - h / 2;
               setGhost({ src, x: centerX, y: centerY, w, h });
             }}
-            onUploaded={(placement: Placement) => {
-              setPlacements((prev) => [...prev, placement]);
+            onUploaded={() => {
               setGhost(null);
             }}
           />
