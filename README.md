@@ -1,6 +1,8 @@
 # MemoryMosaic
 Our MinneHack 2025 project.
 
+[Click here](https://memorymosaic-khaki.vercel.app/) to see the live demo.
+
 Members: Kieran Finger, Qise Salem, Justin Nguyen, Victor Hofstetter
 
 **MinneHack 2026 Theme: "Mending over Ending"**
