@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 
-export default function UploadPage({imageProps, onFileSelect, onUploaded}) {
+export default function UploadPage({imageProps, canSubmit, onFileSelect, onUploaded}) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -54,7 +54,7 @@ export default function UploadPage({imageProps, onFileSelect, onUploaded}) {
 
       <button
         type="submit"
-        disabled={!file || uploading}
+        disabled={!file || uploading || !canSubmit}
         className="px-4 py-2 bg-blue-500 text-white disabled:bg-gray-300"
       >
         {uploading ? "Submitting..." : "Submit"}

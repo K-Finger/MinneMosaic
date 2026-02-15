@@ -49,6 +49,17 @@ function findSnapPosition(dropX: number, dropY: number, w: number, h: number, pl
   return best;
 }
 
+function isAdjacent(img: {x: number, y: number, w: number, h: number}, placements: Placement[]) {
+  return placements.some((p) => {
+    const touchX = img.x + img.w === p.x || p.x + p.w === img.x;
+    const touchY = img.y + img.h === p.y || p.y + p.h === img.y;
+    const overlapX = img.x < p.x + p.w && img.x + img.w > p.x;
+    const overlapY = img.y < p.y + p.h && img.y + img.h > p.y;
+    // touching on x-axis and overlapping on y-axis, or vice versa
+    return (touchX && overlapY) || (touchY && overlapX);
+  });
+}
+
 function checkImageOverlap(draggedImage: {x: number, y: number, w: number, h: number}, placements: Placement[]) {
   return placements.some((p) =>
     draggedImage.x < p.x + p.w &&
@@ -73,13 +84,14 @@ export default function Home() {
     
   const [ghost, setGhost] = useState<{src: string; x: number; y: number; w: number; h: number} | null>(null);
   const stageRef = useRef<Konva.Stage>(null);
-  const [scale, setScale] = useState(1);
+  const [scale, setScale] = useState(0.3);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [size, setSize] = useState({ w: 800, h: 600 });
 
   useEffect(() => {
     const resize = () => setSize({ w: innerWidth, h: innerHeight });
     resize();
+    setPos({ x: innerWidth / 2, y: innerHeight / 2 });
     addEventListener('resize', resize);
     return () => removeEventListener('resize', resize);
   }, []);
@@ -111,9 +123,19 @@ export default function Home() {
     <>
       <UploadPage
         imageProps={ghost ?? {x: 0, y: 0, w: 0, h: 0}}
+        canSubmit={ghost != null && (placements.length === 0 || isAdjacent(ghost, placements))}
         onFileSelect={(src: string | null, w: number, h: number) => {
-          if (src) setGhost({ src, x: 0, y: 0, w, h });
-          else setGhost(null);
+          if (src) {
+            const MAX = 900;
+            if (w > MAX || h > MAX) {
+              const ratio = Math.min(MAX / w, MAX / h);
+              w = Math.round(w * ratio);
+              h = Math.round(h * ratio);
+            }
+            setGhost({ src, x: 0, y: 0, w, h });
+          } else {
+            setGhost(null);
+          }
         }}
         onUploaded={(placement: Placement) => {
           setPlacements((prev) => [...prev, placement]);
