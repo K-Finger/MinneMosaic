@@ -1,10 +1,12 @@
 "use client"
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Stage, Layer, Image as KonvaImage, Rect } from "react-konva";
 import Konva from 'konva';
 import { KonvaEventObject } from "konva/lib/Node";
 import useImage from 'use-image';
-import UploadPage from './ui/image-button';
+import FloatingUploadPanel from './ui/floating-upload-panel';
+import MosaicStatus from './ui/mosaic-status';
+import CanvasControls from './ui/canvas-controls';
 
 // an image
 type Placement = {
@@ -24,7 +26,7 @@ if (hoverSound) hoverSound.volume = 0.15;
 const URLImage = ({ src, ...rest }: {src: string; [key: string]: any}) => {
   const [image, status] = useImage(src);
   if (status === 'failed') console.error('Failed to load image:', src);
-  return <KonvaImage image={image} {...rest} />;
+  return <KonvaImage image={image ?? undefined} {...(rest as Konva.ImageConfig)} />;
 };
 
 const PlacedImage = ({ src, x, y, w, h, caption, onHover }: {
@@ -139,6 +141,7 @@ export default function Home() {
   const [scale, setScale] = useState(0.3);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [size, setSize] = useState({ w: 800, h: 600 });
+  const canvasBounds = { x: -4000, y: -4000, w: 8000, h: 8000 };
 
   useEffect(() => {
     const resize = () => setSize({ w: innerWidth, h: innerHeight });
@@ -148,6 +151,41 @@ export default function Home() {
     return () => removeEventListener('resize', resize);
   }, []);
 
+  const clampScale = (value: number) => Math.max(0.05, Math.min(5, value));
+
+  const zoomAtPoint = useCallback((nextScale: number, pointer: { x: number; y: number }) => {
+    const clamped = clampScale(nextScale);
+    const mousePos = {
+      x: (pointer.x - pos.x) / scale,
+      y: (pointer.y - pos.y) / scale,
+    };
+
+    setScale(clamped);
+    setPos({
+      x: pointer.x - mousePos.x * clamped,
+      y: pointer.y - mousePos.y * clamped,
+    });
+  }, [pos.x, pos.y, scale]);
+
+  const zoomBy = (factor: number) => {
+    zoomAtPoint(scale * factor, { x: size.w / 2, y: size.h / 2 });
+  };
+
+  const resetView = () => {
+    setScale(1);
+    setPos({ x: 0, y: 0 });
+  };
+
+  const fitCanvas = () => {
+    const fittedScale = Math.min(size.w / canvasBounds.w, size.h / canvasBounds.h);
+    const safeScale = clampScale(fittedScale);
+    setScale(safeScale);
+    setPos({
+      x: (size.w - canvasBounds.w * safeScale) / 2 - canvasBounds.x * safeScale,
+      y: (size.h - canvasBounds.h * safeScale) / 2 - canvasBounds.y * safeScale,
+    });
+  };
+
   const onWheel = (e: KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
     const stage = stageRef.current;
@@ -155,45 +193,11 @@ export default function Home() {
     if (!stage || !ptr) return;
 
     const zoom = 1.1;
-    const newScale = Math.max(0.1, Math.min(10, 
-      e.evt.deltaY < 0 ? scale * zoom : scale / zoom
-    ));
-    
-    const mousePos = {
-      x: (ptr.x - pos.x) / scale,
-      y: (ptr.y - pos.y) / scale,
-    };
-    
-    setScale(newScale);
-    setPos({
-      x: ptr.x - mousePos.x * newScale,
-      y: ptr.y - mousePos.y * newScale,
-    });
+    zoomAtPoint(e.evt.deltaY < 0 ? scale * zoom : scale / zoom, ptr);
   };
 
   return (
-    <>
-      <UploadPage
-        imageProps={ghost ?? {x: 0, y: 0, w: 0, h: 0}}
-        canSubmit={ghost != null && (placements.length === 0 || isAdjacent(ghost, placements))}
-        onFileSelect={(src: string | null, w: number, h: number) => {
-          if (src) {
-            const MAX = 900;
-            if (w > MAX || h > MAX) {
-              const ratio = Math.min(MAX / w, MAX / h);
-              w = Math.round(w * ratio);
-              h = Math.round(h * ratio);
-            }
-            setGhost({ src, x: 0, y: 0, w, h });
-          } else {
-            setGhost(null);
-          }
-        }}
-        onUploaded={(placement: Placement) => {
-          setPlacements((prev) => [...prev, placement]);
-          setGhost(null);
-        }}
-      />
+    <main className="relative h-dvh w-full overflow-hidden bg-slate-950">
       <Stage
         ref={stageRef}
         width={size.w} height={size.h}
@@ -206,9 +210,20 @@ export default function Home() {
             setPos({ x: e.target.x(), y: e.target.y() });
           }
         }}
+        className="absolute inset-0"
       >
         <Layer>
-          <Rect x={-3000} y={-3000} width={6000} height={6000} fill="white" />
+          <Rect
+            x={canvasBounds.x}
+            y={canvasBounds.y}
+            width={canvasBounds.w}
+            height={canvasBounds.h}
+            fill="#f8fafc"
+            cornerRadius={24}
+            shadowBlur={40}
+            shadowOpacity={0.08}
+            shadowOffset={{ x: 0, y: 12 }}
+          />
           {placements.map((p) => (
             <PlacedImage key={p.id} src={p.url} x={p.x} y={p.y} w={p.w} h={p.h} caption={p.caption} onHover={setTooltip} />
           ))}
@@ -218,7 +233,7 @@ export default function Home() {
               x={ghost.x} y={ghost.y}
               width={ghost.w} height={ghost.h}
               draggable
-              onDragEnd={(e: any) => {
+              onDragEnd={(e: KonvaEventObject<DragEvent>) => {
                 const dropX = e.target.x();
                 const dropY = e.target.y();
                 const snap = findSnapPosition(dropX, dropY, ghost.w, ghost.h, placements);
@@ -256,5 +271,47 @@ export default function Home() {
         </div>
       )}
     </>
+
+      <div className="pointer-events-none absolute inset-0 z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.22),_transparent_40%),radial-gradient(circle_at_bottom_left,_rgba(14,116,144,0.28),_transparent_45%)]" />
+
+        <section className="pointer-events-none absolute inset-x-4 top-4 flex items-start justify-between gap-4 md:inset-x-6 md:top-6">
+          <FloatingUploadPanel
+            ghost={ghost}
+            placementsCount={placements.length}
+            isGhostAdjacent={ghost != null && isAdjacent(ghost, placements)}
+            onFileSelect={(src: string | null, w: number, h: number) => {
+              if (!src) {
+                setGhost(null);
+                return;
+              }
+
+              const MAX = 900;
+              if (w > MAX || h > MAX) {
+                const ratio = Math.min(MAX / w, MAX / h);
+                w = Math.round(w * ratio);
+                h = Math.round(h * ratio);
+              }
+              const centerX = (size.w / 2 - pos.x) / scale - w / 2;
+              const centerY = (size.h / 2 - pos.y) / scale - h / 2;
+              setGhost({ src, x: centerX, y: centerY, w, h });
+            }}
+            onUploaded={(placement: Placement) => {
+              setPlacements((prev) => [...prev, placement]);
+              setGhost(null);
+            }}
+          />
+
+          <MosaicStatus placementsCount={placements.length} scale={scale} />
+        </section>
+
+        <CanvasControls
+          onZoomIn={() => zoomBy(1.15)}
+          onZoomOut={() => zoomBy(1 / 1.15)}
+          onFitCanvas={fitCanvas}
+          onResetView={resetView}
+        />
+      </div>
+    </main>
   );
 }
