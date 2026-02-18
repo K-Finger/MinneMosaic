@@ -14,7 +14,7 @@ Hover over any tile to read its caption and learn the story behind it.
 ![MemoryMosaic preview](public/readmepreview.png)
 
 ## Technical Implementation
-MemoryMosaic is built a Next.js App a Typescript React frontend. Images are stored in Supabase Storage with placement metadata (position, size, caption). The canvas uses magnetic snapping that lets users precisely align images to the existing mosaic without gaps or overlaps. 
+MemoryMosaic is built with a Next.js App and a Typescript React frontend. Images are stored in Supabase Storage with placement metadata (position, size, caption). The canvas uses magnetic snapping that lets users align images to the existing mosaic without gaps or overlaps. 
 
 The project is *~1,078 lines of code* excluding shadcn components.
 
